@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        #game, .game-selector {
+            width: 600px;
+            height: 600px;
+            background-color: #EBEEEE;
+            margin: 10px;
+        }
+
+
+        .game-container {
+            padding: 20px;
+            margin: 0px;
+            width: 600px;
+        }
+
+        .top, .bottom {
+            height: 60px;
+            padding: 0 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top .content, .bottom .content {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-container{ 
+            display: flex;
+            justify-content: flex-end;
+            width: 30%;
+            height: 100%;
+        }
+
+        .timer-container .timer {
+            width: 120px;
+            border-radius: 4px;
+            background-color: #989795;
+            margin-right: -20px;
+            padding: 14px 10px;
+            text-align: right;
+        }
+
+        .timer span {
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .game-selector {
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-selector .top-container {
+            padding: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+            line-height: 40px;
+        }
+
+        .game-selector .middle-container {
+            padding: 10px;
+        }
+
+        .game-selector .middle-container .interval-containers {
+            display: flex;
+        }
+
+        .interval-containers .interval {
+            margin: 10px 20px;
+            padding: 10px;
+            width: 120px;
+            background-color: #fff;
+            cursor: pointer;
+            box-shadow: 3px 3px 8px -5px #000000;
+            user-select: none;
+            transition: 0.2s all;
+        }
+
+        .interval-containers .interval:hover {
+            margin-top: -5px;
+        }
+
+        .interval-containers .interval .main {
+            font-size: 24px;
+            margin: 10px 10px;
+        }
+
+        .interval-containers .interval .name {
+            margin: 0 10px;
+        }
+
+        .form-container {
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .form-container input {
+            padding: 10px 12px;
+        }
+
+        .waiting-container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .canvas-container .button-pannels {
+            position: absolute;
+            width: auto;
+            height: 600px;
+            right: -100px;
+            top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .canvas-container .pannel-popup {
+            position: absolute;
+            width: 300px;
+            height: 200px;
+            background-color: #fff;
+            border-radius: 25px;
+            left: calc(50% - (300px / 2));
+            top: calc(50% - (200px / 2));
+            opacity: 0.95;
+        }
+
+        .pannel-popup ._top{
+            padding: 20px;
+            border-bottom: 1px solid #302E2B;
+            font-size: 24px;
+            text-align: center;
+            color: #302E2B;
+            font-weight: 800;
+        }
+
+        .pannel-popup ._bottom{
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pannel-popup ._bottom ._buttons {
+            display: flex;
+        }
+
+        .pannel-popup ._bottom ._buttons .button {
+            width: 80px;
+            padding: 14px;
+            border-radius: 25px;
+            background-color: #fff;
+            box-shadow: 3px 3px 8px -5px #000000;
+            margin: 10px 5px;
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .pannel-popup ._bottom ._buttons .button:active {
+            transform: scale(0.8);
+        }
+
+        .pannel-popup ._bottom ._buttons .button:first-child {
+            background-color: #739552;
+            color: #fff;
+        }
+
+        .button-pannels .buttons {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .buttons .button {
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fff;
+            box-shadow: 3px 3px 8px -5px #000000;
+            margin: 10px 5px;
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+        }
+
+        .buttons .button:active {
+            transform: scale(0.8);
+        }
+    </style>
+
+    <!-- sass -->
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="top">
+            <div class="content"  style="display: none;">
+                <div class="profile-container">
+                    <div class="avatar-container">
+                        <div class="avatar"></div>
+                        <div class="name">
+                            <h3>Jhon Orlan Tero</h3>
+                            <span>Black</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="timer-container">
+                    <div class="timer timer-top"><span>3:00</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="middle">
+            <div class="canvas-container">
+                <canvas id="game" width="600" height="600" style="display: none;"></canvas>
+                
+                <div class="button-pannels" style="display: none;">
+                    <div class="buttons">
+                        <div class="button resign-btn">
+                            <div class="icon"></div>
+                            <div class="text"><span>Resign</span></div>
+                        </div>
+                        <div class="button draw-btn">
+                            <div class="icon"></div>
+                            <div class="text"><span>Draw</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pannel-popup"  style="display: none;">
+                    <div class="_top">
+                        <div class="text"><span>YOU WIN</span></div>
+                    </div>
+                    <div class="_bottom">
+                        <div class="_buttons">
+                            <div class="button">
+                                <div class="icon"></div>
+                                <div class="text"><span>Rematch</span></div>
+                            </div>
+                            <div class="button">
+                                <div class="icon"></div>
+                                <div class="text"><span>Back</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-selector">
+                <div class="top-container">
+                    <div class="title">
+                        <h1>CHESS GAME</h1>
+                        <span>TikTok</span>
+                    </div>
+                </div>
+                <div class="middle-container">
+                    <div class="form-container">
+                        <div class="form-group">
+                            <input type="text" id="name" placeholder="Your Name">
+                        </div>
+                    </div>
+                    <div class="interval-containers">
+                        <div class="interval"  data-minutes="1" data-seconds="0">
+                            <div class="text">
+                                <div class="main"><span>1 + 0</span></div>
+                                <div class="name"><span>Bullet</span></div>
+                            </div>
+                        </div>
+                        <div class="interval" data-minutes="3" data-seconds="0">
+                            <div class="text">
+                                <div class="main"><span>3 + 0</span></div>
+                                <div class="name"><span>Blitz</span></div>
+                            </div>
+                        </div>
+                        <div class="interval" data-minutes="10" data-seconds="0">
+                            <div class="text">
+                                <div class="main"><span>10 + 0</span></div>
+                                <div class="name"><span>Rapid</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="waiting-container" style="display: none;">
+                        <h3>WAITING FOR OPPONENT...</h3>
+                    </div>
+                  
+                </div>
+            </div>
+        </div>
+        <div class="bottom">
+            <div class="content" style="display: none;">
+                <div class="profile-container">
+                    <div class="avatar-container">
+                        <div class="avatar"></div>
+                        <div class="name">
+                            <h3>Jhon Orlan Tero</h3>
+                            <span>White</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="timer-container">
+                    <div class="timer timer-bottom"><span>3:00</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+    <script type="module" src="./index.js"></script>
+
+</html>
