@@ -1,7 +1,7 @@
 import { sessionPlayer, socketIO } from "../index.js";
 import Board from "./Board.js";
 import { EMIT_TYPE } from "./MatchMaking.js";
-import { DeepClone, DIRECTIONS, PIECES, Position, RankFile, SIDES, SPECIAL_MOVES, uuidv4 } from "./Objects.js";
+import { DeepClone, DIRECTIONS, PIECES, Position, RankFile, REASONS, SIDES, SPECIAL_MOVES, uuidv4 } from "./Objects.js";
 
 export default class Chess {
     constructor(match_uuid, canvas, players) {
@@ -14,6 +14,8 @@ export default class Chess {
             selectedPiece: null,
             turn: SIDES.WHITE,
             playerTurn: this.getPlayer(SIDES.WHITE),
+            isOver: false,
+            isStarted: false
         };
 
         this.info = {
@@ -27,6 +29,24 @@ export default class Chess {
         };
 
         this.count = 0;
+
+        this.callback = null;
+    }
+
+    setOnDispose(callback) {
+        this.callback = callback;
+    }
+
+    dispose() {
+        const top = document.querySelector(".game-container .top .content");
+        const bottom = document.querySelector(".game-container .bottom .content");
+
+        if (this.callback) {
+            this.callback();
+            top.style.display = "none";
+            bottom.style.display = "none";
+
+        }
     }
 
 
@@ -47,7 +67,7 @@ export default class Chess {
 
     checkTimer(player, {minutes, seconds}) {
         if (minutes <= 0 && seconds <= 0) {
-            this.gameOver(player);
+            this.gameOver(player, REASONS.NOTIME);
         }
     }
 
@@ -85,11 +105,12 @@ export default class Chess {
             }
         }
 
-        this.checkCheck(this.elements.board);
-
         if (!fromEnemySocket) {
             this.sendMoveToSocket(move);
         }
+
+        this.checkCheck(this.elements.board);
+
     }
 
     sendMoveToSocket(move) {
@@ -110,6 +131,7 @@ export default class Chess {
         this.listen();     
         this.initTimerPlayer();
         this.listenToSocket();
+        this.listenToButtons();
     }
 
     listenToSocket() {
@@ -120,11 +142,66 @@ export default class Chess {
         });
     }
 
+    listenToButtons() {
+        const panelPopup = document.querySelector(".pannel-popup");
+        const backBtn = panelPopup.querySelector(".back-btn");
+        const rematchBtn = panelPopup.querySelector(".rematch-btn");
+        const waitingPanel = panelPopup.querySelector(".rematch-waiting");
+        const mainButtons = panelPopup.querySelector(".main-buttons");
+        const cancelButton = panelPopup.querySelector(".rematch-sent-btn");
+        const game = this;
+
+        rematchBtn.addEventListener("click", function() {
+            const request = {
+                type: EMIT_TYPE.ASK_FOR_REMATCH,
+                data: {
+                    match_uuid: game.match_uuid,
+                    player_uuid: sessionPlayer.uuid
+                }
+            };
+            
+            socketIO.emit("message", JSON.stringify(request));
+
+            mainButtons.style.display = "none";
+            waitingPanel.style.display = "flex";
+        });
+
+        backBtn.addEventListener("click", function() {
+            game.dispose();
+        });
+
+        cancelButton.addEventListener("click", function() {
+            game.dispose();
+        });
+    }
+
+    resign() {
+        const request = {
+            type: EMIT_TYPE.PLAYER_RESIGNED,
+            data: {
+                match_uuid: this.match_uuid,
+                player_uuid: sessionPlayer.uuid
+            }
+        };
+        
+        socketIO.emit("message", JSON.stringify(request));
+
+        const panelPopup = document.querySelector(".pannel-popup");
+
+        if (panelPopup) {
+            panelPopup.style.display = "block";
+
+            this.gameOver(sessionPlayer, REASONS.RESIGNED);
+        }
+    }
+
     resigned(request) {
         const panelPopup = document.querySelector(".pannel-popup");
 
         if (panelPopup) {
             panelPopup.style.display = "block";
+
+            this.gameOver(this.getPlayer(this.getEnemySide(sessionPlayer.side)), REASONS.RESIGNED);
         }
     }
 
@@ -136,7 +213,77 @@ export default class Chess {
             case EMIT_TYPE.PLAYER_RESIGNED:
                 this.resigned(JSON.parse(message.data));
             break;
+            case EMIT_TYPE.ASK_FOR_REMATCH:
+                this.rematchReceived(JSON.parse(message.data));
+            break;
+            case EMIT_TYPE.REMATCH_RESPOND:
+                this.rematchRespondReceived(JSON.parse(message.data));
+            break;
         }
+    }
+
+    rematchRespondReceived(request) {
+        const panelPopup = document.querySelector(".pannel-popup");
+        const mainButtons = panelPopup.querySelector(".main-buttons");
+        const rematchButtons = panelPopup.querySelector(".rematch-buttons");
+        const subText = panelPopup.querySelector(".sub-text span");
+        const waitingPanel = panelPopup.querySelector(".rematch-waiting");
+
+        const game = this;
+
+        mainButtons.style.display = "none";
+        rematchButtons.style.display = "flex";
+        subText.innerText = "Rematch Declined";
+
+        mainButtons.style.display = "flex";
+        rematchButtons.style.display = "none";
+        waitingPanel.style.display = "none";
+    }
+
+    rematchReceived(request) {
+        const panelPopup = document.querySelector(".pannel-popup");
+        const mainButtons = panelPopup.querySelector(".main-buttons");
+        const rematchButtons = panelPopup.querySelector(".rematch-buttons");
+        const acceptBtn = rematchButtons.querySelector(".accept-btn");
+        const declineBtn = rematchButtons.querySelector(".decline-btn");
+        const subText = panelPopup.querySelector(".sub-text span");
+        const game = this;
+
+        mainButtons.style.display = "none";
+        rematchButtons.style.display = "flex";
+        subText.innerText = "Requested a Rematch";
+
+        acceptBtn.addEventListener("click", function() {
+            const request = {
+                type: EMIT_TYPE.REMATCH_RESPOND,
+                data: {
+                    match_uuid: game.match_uuid,
+                    player_uuid: sessionPlayer.uuid,
+                    respond: 100
+                }
+            };
+            
+            socketIO.emit("message", JSON.stringify(request));
+
+            mainButtons.style.display = "flex";
+            rematchButtons.style.display = "none";
+        });
+
+        declineBtn.addEventListener("click", function() {
+            const request = {
+                type: EMIT_TYPE.REMATCH_RESPOND,
+                data: {
+                    match_uuid: game.match_uuid,
+                    player_uuid: sessionPlayer.uuid,
+                    respond: 101
+                }
+            };
+            
+            socketIO.emit("message", JSON.stringify(request));
+
+            mainButtons.style.display = "flex";
+            rematchButtons.style.display = "none";
+        });
     }
 
     makeMoveFromSocket(moveRequest) {
@@ -541,7 +688,7 @@ export default class Chess {
     }
 
     tryMove(piece, square, sp, board, background = false, cpositions = [], fromEnemySocket = false) {
-        if (!piece || !square) return;
+        if (!piece || !square) return false;
 
         const move = {
             from: piece.rankfile.get(),
@@ -551,7 +698,7 @@ export default class Chess {
 
         if (!fromEnemySocket) {
             if (sessionPlayer.side != board.data.turn) {
-                return;
+                return false;
             } 
         }
 
@@ -565,7 +712,7 @@ export default class Chess {
             const canMove = this.tryMove(copyPiece, copySquare, sp, copyBoard, true, cpositions, fromEnemySocket);
 
             if (!canMove) {
-                return;
+                return false;
             }
 
             if (cpositions.length) {
@@ -578,7 +725,7 @@ export default class Chess {
         const lastSquare = squares[piece.positionIndex.y][piece.positionIndex.x];
 
         if (!positions) {
-            return;
+            return false;
         }
         
         const valid = positions.filter(pos => square.index.isEqual(pos));
@@ -663,11 +810,12 @@ export default class Chess {
             }
         }
 
+        this.resetPossiblePositions(board);
+
         if (!sp) {
             this.onPlayerMove(move, fromEnemySocket);
         }
 
-        this.resetPossiblePositions(board);
     }
 
     getEnemySide(sss) {
@@ -682,7 +830,7 @@ export default class Chess {
 
         const copySquare = copyBoard.grid[squarePosition.y][squarePosition.x];
 
-        return this.tryMove(copyPiece, copySquare, false, copyBoard, true);
+        return this.tryMove(copyPiece, copySquare, false, copyBoard, true, false, true);
     }
 
     checkCheck(board) {
@@ -692,11 +840,12 @@ export default class Chess {
             const isCheckMate = this.kingCheckMate(isCheck);
 
             if (isCheckMate) {
-                this.gameOver();
+                this.gameOver(this.getPlayer(isCheckMate.side), REASONS.CHECKMATE);
             }
         } else {
             const kings = this.getAllPieces(PIECES.KING);
 
+            // to be updated
             const isDraw = this.isDraw(this.elements.board, kings);
         }
     }
@@ -725,14 +874,40 @@ export default class Chess {
         }
     }
 
-    gameOver(lost) {
+    gameOver(lost, reason) {
         this.stopTimers();
+
+        this.data.isOver = true;
+        this.data.isStarted = false;
+
+        const panelPopup = document.querySelector(".pannel-popup");
+        const subText = panelPopup.querySelector(".sub-text span");
+        const text = panelPopup.querySelector(".main-text span");
+
+        if (panelPopup) {
+            panelPopup.style.display = "block";
+            subText.innerHTML = reason;
+            text.innerText = lost.uuid == sessionPlayer.uuid ? "You Lost" : "You Win";
+        }
 
     }
 
     kingCheckMate(king) {
         const moves = king.moves;
         const board = this.elements.board;
+        const pieces = board.getCurrentPieces(board.data.turn);
+
+        for (const piece of pieces) {
+            if (piece.moves.length) {
+                for (const move of piece.moves) {
+                    const check = this.tryMoveInBackground(board, piece.positionIndex, move);
+
+                    if (check) {
+                        return false;
+                    }
+                }
+            }
+        }
 
         for (const move of moves) {
             const check = this.tryMoveInBackground(board, king.positionIndex, move);
@@ -742,7 +917,7 @@ export default class Chess {
             }
         }
 
-        return true;
+        return king;
     }
 
     isDraw(board, kings) {

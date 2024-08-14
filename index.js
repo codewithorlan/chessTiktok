@@ -61,13 +61,16 @@ function initUI() {
             matchMaking.find({minutes, seconds}, socketIO);
 
             intervalContainer.style.display = "none";
-            waitingContainer.style.display = "flex";
+            waitingContainer.style.display = "block";
 
         });
     }
 }
 
 function init(match) {
+    const intervalContainer = document.querySelector(".interval-containers");
+    const waitingContainer = document.querySelector(".waiting-container");
+    const panelPopup = document.querySelector(".pannel-popup");
     const gameSelector = document.querySelector(".game-selector");
     const buttonpanels = document.querySelector(".button-pannels");
 
@@ -77,6 +80,7 @@ function init(match) {
     gameSelector.style.display = "none";
     canvas.style.display = "block";
     buttonpanels.style.display = "flex";
+    panelPopup.style.display = "none";
 
     sessionPlayer.side = match.white.player.uuid == sessionPlayer.uuid ? SIDES.WHITE : SIDES.BLACK;
 
@@ -90,19 +94,21 @@ function init(match) {
 
     animate();
 
+    GAME.setOnDispose(function() {
+        gameSelector.style.display = "block";
+        canvas.style.display = "none";
+        buttonpanels.style.display = "none";
+        panelPopup.style.display = "none";
+
+        intervalContainer.style.display = "flex";
+        waitingContainer.style.display = "none";
+    });
+
     GAME.start();
 
     if (resignButton) {
         resignButton.addEventListener("click", function() {
-            const request = {
-                type: EMIT_TYPE.PLAYER_RESIGNED,
-                data: {
-                    match_uuid: match.uuid,
-                    player_uuid: sessionPlayer.uuid
-                }
-            };
-            
-            socketIO.emit("message", JSON.stringify(request));
+           GAME.resign();
         });
     }
 

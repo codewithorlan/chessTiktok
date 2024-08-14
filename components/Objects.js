@@ -88,6 +88,13 @@ export const FILES = {
     H: "h"
 }
 
+export const REASONS = {
+    CHECKMATE: "Checkmate",
+    RESIGNED: "Resignation",
+    QUIT: "Quit",
+    NOTIME: "Lost on Time"
+}
+
 export function uuidv4() {
     return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
       (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)

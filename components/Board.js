@@ -120,6 +120,22 @@ export default class Board{
         return null;
     }
 
+    getCurrentPieces(side) {
+        const pieces = [];
+        
+        for (const squares of this.grid) {
+          for (const square of squares) {
+            if (square.piece != null) {
+                if (square.piece.side == side) {
+                     pieces.push(square.piece);
+                }
+            }
+          }
+        }
+
+        return pieces;
+    }
+
     getPieces(side) {
         const pieces = [];
         

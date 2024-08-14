@@ -20,6 +20,12 @@ export function ParseClientMessage(socket, message) {
         case 103:
             ManageResign({data: message.data}, socket);
         break;
+        case 104:
+            ManageRematch({data: message.data}, socket);
+        break;
+        case 105:
+            ManageRematchRespond({data: message.data}, socket);
+        break;
     }
 }
 
@@ -31,6 +37,37 @@ function FindMatch(uuid){
     }
 
     return null;
+}
+
+function ManageRematchRespond(request) {
+    const match = FindMatch(request.data.match_uuid);
+    
+    console.log(request, match);
+    if (match != null) {
+        const enemy = match.white.player.uuid == request.data.player_uuid ? match.blackRequest : match.whiteRequest;
+
+        if (request.data.respond == 100) {
+            DoMatch(match.whiteRequest, match.blackRequest);
+        } else {
+            enemy.socket.emit('message', {
+                type: 105,
+                data: JSON.stringify(request.data)
+            });
+        }
+    }
+}
+
+function ManageRematch(request) {
+    const match = FindMatch(request.data.match_uuid);
+    
+    if (match != null) {
+        const enemy = match.white.player.uuid == request.data.player_uuid ? match.blackRequest : match.whiteRequest;
+
+        enemy.socket.emit('message', {
+            type: 104,
+            data: JSON.stringify(request.data)
+        });
+    }
 }
 
 function ManageResign(request) {

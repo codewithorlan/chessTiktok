@@ -4,6 +4,8 @@ export const EMIT_TYPE = {
 
     PLAYER_MOVE: 102,
     PLAYER_RESIGNED: 103,
+    ASK_FOR_REMATCH: 104,
+    REMATCH_RESPOND: 105
 }
 
 export default class MatchMaking{

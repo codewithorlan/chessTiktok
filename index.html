@@ -159,6 +159,11 @@
             opacity: 0.95;
         }
 
+        .sub-text {
+            font-size: 16px;
+            font-weight: 400;
+        }
+
         .pannel-popup ._top{
             padding: 20px;
             border-bottom: 1px solid #302E2B;
@@ -261,19 +266,38 @@
                     </div>
                 </div>
 
-                <div class="pannel-popup"  style="display: none;">
+                <div class="pannel-popup" style="display: none;">
                     <div class="_top">
-                        <div class="text"><span>YOU WIN</span></div>
+                        <div class="text main-text"><span>YOU WIN</span></div>
+                        <div class="sub-text">
+                            <span>Checkmate</span>
+                        </div>
                     </div>
                     <div class="_bottom">
-                        <div class="_buttons">
-                            <div class="button">
+                        <div class="_buttons main-buttons">
+                            <div class="button rematch-btn">
                                 <div class="icon"></div>
                                 <div class="text"><span>Rematch</span></div>
                             </div>
-                            <div class="button">
+                            <div class="button back-btn">
                                 <div class="icon"></div>
                                 <div class="text"><span>Back</span></div>
+                            </div>
+                        </div>
+                        <div class="_buttons rematch-buttons" style="display: none;">
+                            <div class="button accept-btn">
+                                <div class="icon"></div>
+                                <div class="text"><span>Accept</span></div>
+                            </div>
+                            <div class="button decline-btn">
+                                <div class="icon"></div>
+                                <div class="text"><span>Decline</span></div>
+                            </div>
+                        </div>
+                        <div class="_buttons rematch-waiting" style="display: none;">
+                            <div class="button rematch-sent-btn">
+                                <div class="icon"></div>
+                                <div class="text"><span>Cancel</span></div>
                             </div>
                         </div>
                     </div>

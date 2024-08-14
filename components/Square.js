@@ -1,4 +1,5 @@
-import { Position } from "./Objects.js";
+import { sessionPlayer } from "../index.js";
+import { Position, SIDES } from "./Objects.js";
 
 const whiteColor = "#F0D9B5";
 const blackColor = "#B58863"
@@ -64,6 +65,16 @@ export default class Square{
             ctx.fill();
             
             ctx.globalAlpha = 1;
+        }
+
+        if (this.rankfile.file == "A") {
+            ctx.fillStyle = "#050505"
+            ctx.fillText(this.rankfile.rank, (this.position.x) + 5, (this.position.y) + 15, 30, 30);
+        }
+
+        if (((sessionPlayer.side == SIDES.BLACK && this.rankfile.rank == 8) || (sessionPlayer.side == SIDES.WHITE && this.rankfile.rank == 1))) {
+            ctx.fillStyle = "#050505"
+            ctx.fillText(this.rankfile.file, (this.position.x) + 5, (this.position.y + size) - 5, 30, 30);
         }
     }
     
